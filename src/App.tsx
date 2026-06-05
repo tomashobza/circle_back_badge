@@ -34,7 +34,10 @@ useTexture.preload("/band.jpg");
 export default function App() {
   // const { debug } = useControls({ debug: false });
   return (
-    <Canvas camera={{ position: [0, 0, 13], fov: 25 }}>
+    <Canvas
+      camera={{ position: [0, 0, 13], fov: 25 }}
+      style={{ touchAction: "none" }}
+    >
       <ambientLight intensity={Math.PI} />
       <Physics
         // debug={debug}
