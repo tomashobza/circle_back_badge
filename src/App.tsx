@@ -17,7 +17,7 @@ import {
   useSphericalJoint,
 } from "@react-three/rapier";
 import { MeshLineGeometry, MeshLineMaterial } from "meshline";
-import { useControls } from "leva";
+// import { useControls } from "leva";
 
 // Extended RigidBody type to include lerped vector for smooth interpolation
 type RigidBodyWithLerped = RapierRigidBody & { lerped?: THREE.Vector3 };
@@ -32,12 +32,12 @@ useGLTF.preload("/circle_back_badge.glb");
 useTexture.preload("/band.jpg");
 
 export default function App() {
-  const { debug } = useControls({ debug: false });
+  // const { debug } = useControls({ debug: false });
   return (
     <Canvas camera={{ position: [0, 0, 13], fov: 25 }}>
       <ambientLight intensity={Math.PI} />
       <Physics
-        debug={debug}
+        // debug={debug}
         interpolate
         gravity={[0, -40, 0]}
         timeStep={1 / 60}
