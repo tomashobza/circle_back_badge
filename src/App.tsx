@@ -1,5 +1,5 @@
 // import Badge from "./Badge";
-import { useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import badgeBg from "./assets/badge_bg.jpg";
 import QRCode from "qrcode";
 
@@ -145,42 +145,133 @@ async function drawContent(ctx: CanvasRenderingContext2D, props: BadgeProps) {
 
 function App() {
   // return <Badge />;
+  const [props, setProps] = useState<BadgeProps>(defaultBadgeProps);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
-  const imageLoaded = useRef(false);
+  const imgRef = useRef<HTMLImageElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const [allLoaded, setAllLoaded] = useState(false);
 
-  const img = new Image();
-  img.onload = async () => {
-    await document.fonts.load('100 64px "Geist Mono"');
-    await document.fonts.load('400 24px "Inter"');
+  useEffect(() => {
+    // setup canvas context
     const canvas = canvasRef.current;
     if (canvas) {
       canvas.width = 1024; // pixel buffer
       canvas.height = 1024;
       canvas.style.width = "500px"; // display size
-      // canvas.style.height = "200px";
-      // const desiredWidth = 1024;
-      // const desiredHeight = 1024;
-      // const scaleX = 200 / desiredWidth;
-      // const scaleY = 200 / desiredHeight;
       const ctx = canvas.getContext("2d");
       if (ctx) {
-        // ctx.scale(scaleX, scaleY);
-        ctx.drawImage(img, 0, 0);
-        await drawContent(ctx, defaultBadgeProps);
-
-        // ctx.fillRect(166, 474, 264, 9);
+        ctxRef.current = ctx;
       }
     }
-  };
-  img.src = badgeBg; // just use the URL directly
 
-  console.log("Image src:", img.src); // Log the image source to verify it's correct
+    console.log("canvas setup complete");
+
+    // load fronts
+    Promise.all([
+      document.fonts.load('100 64px "Geist Mono"'),
+      document.fonts.load('400 24px "Inter"'),
+      document.fonts.load('400 16px "Inter"'),
+      document.fonts.load('600 16px "Inter"'),
+      new Promise((resolve, reject) => {
+        const img = new Image();
+        img.onload = () => {
+          imgRef.current = img;
+          resolve(null);
+        };
+        img.onerror = reject;
+        img.src = badgeBg;
+      }),
+    ]).then(() => {
+      console.log("all assets loaded", imgRef.current, ctxRef.current);
+      setAllLoaded(true);
+    });
+  }, []);
+
+  // draw content when both image and fonts are loaded
+  useEffect(() => {
+    if (allLoaded && ctxRef.current && imgRef.current) {
+      const ctx = ctxRef.current;
+      ctx.drawImage(imgRef.current, 0, 0);
+      drawContent(ctx, props);
+    }
+  }, [allLoaded, props]);
+
+  // const img = new Image();
+  // img.onload = async () => {
+  //   imageLoaded.current = true;
+
+  //   const canvas = canvasRef.current;
+  //   if (canvas) {
+  //     canvas.width = 1024; // pixel buffer
+  //     canvas.height = 1024;
+  //     canvas.style.width = "500px"; // display size
+  //     // canvas.style.height = "200px";
+  //     // const desiredWidth = 1024;
+  //     // const desiredHeight = 1024;
+  //     // const scaleX = 200 / desiredWidth;
+  //     // const scaleY = 200 / desiredHeight;
+  //     const ctx = canvas.getContext("2d");
+  //     if (ctx) {
+  //       // ctx.scale(scaleX, scaleY);
+  //       ctx.drawImage(img, 0, 0);
+  //       await drawContent(ctx, defaultBadgeProps);
+
+  //       // ctx.fillRect(166, 474, 264, 9);
+  //     }
+  //   }
+  // };
+  // img.src = badgeBg; // just use the URL directly
 
   return (
     <div>
-      {/* <img src={reactLogo} alt="React logo" /> */}
+      {/* inputs to change the badge content */}
+      <form>
+        <input
+          type="text"
+          placeholder="Name"
+          value={props.name}
+          onChange={(e) => setProps({ ...props, name: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Position"
+          value={props.position}
+          onChange={(e) => setProps({ ...props, position: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Team"
+          value={props.team}
+          onChange={(e) => setProps({ ...props, team: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Employee ID"
+          value={props.employeeId}
+          onChange={(e) => setProps({ ...props, employeeId: e.target.value })}
+        />
+        <input
+          type="number"
+          placeholder="XP"
+          value={props.xp}
+          onChange={(e) =>
+            setProps({ ...props, xp: parseInt(e.target.value) || 0 })
+          }
+        />
+        <input
+          type="text"
+          placeholder="Hire Date"
+          value={props.hireDate}
+          onChange={(e) => setProps({ ...props, hireDate: e.target.value })}
+        />
+        <input
+          type="text"
+          placeholder="Referral Code"
+          value={props.referralCode}
+          onChange={(e) => setProps({ ...props, referralCode: e.target.value })}
+        />
+      </form>
       <canvas
         style={{ border: "1px solid #000" }}
         ref={canvasRef}
