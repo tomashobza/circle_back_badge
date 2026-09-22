@@ -118,15 +118,17 @@ async function drawContent(ctx: CanvasRenderingContext2D, props: BadgeProps) {
     ctx.fillText(`${metric}`, 478, baseY + i * ygap + 4.5);
   }
 
-  // draw invite qr code
   const baseUrl = "https://circle.com/ref/";
-  const qrCanvas = document.createElement("canvas");
-  await QRCode.toCanvas(qrCanvas, `${baseUrl}${props.referralCode}`, {
+  const referralUrl = `${baseUrl}${props.referralCode}`;
+
+  // draw front invite qr code
+  const frontQrCanvas = document.createElement("canvas");
+  await QRCode.toCanvas(frontQrCanvas, referralUrl, {
     width: 103,
     margin: 0,
   });
 
-  ctx.drawImage(qrCanvas, 97, 637, 103, 103);
+  ctx.drawImage(frontQrCanvas, 97, 637, 103, 103);
 
   // draw label
   ctx.fillStyle = "black";
@@ -141,6 +143,26 @@ async function drawContent(ctx: CanvasRenderingContext2D, props: BadgeProps) {
   ctx.textAlign = "left";
   ctx.textBaseline = "top";
   ctx.fillText(`circle.com/ref/${props.referralCode}`, 210, 656);
+
+  // Draw the back-side QR on a rounded white card.
+  ctx.fillStyle = "white";
+  ctx.beginPath();
+  ctx.roundRect(639, 220, 257, 257, 12);
+  ctx.fill();
+
+  const backQrCanvas = document.createElement("canvas");
+  await QRCode.toCanvas(backQrCanvas, referralUrl, {
+    width: 241,
+    margin: 0,
+  });
+  ctx.drawImage(backQrCanvas, 647, 228, 241, 241);
+
+  ctx.fillStyle = "white";
+  ctx.font = '400 13px "Inter"';
+  ctx.textAlign = "left";
+  ctx.textBaseline = "top";
+  ctx.fillText(`ID: ${props.employeeId} · circle back`, 684, 482);
+  ctx.fillText(`circle.com/ref/${props.referralCode}`, 684, 499);
 }
 
 function App() {
@@ -188,12 +210,31 @@ function App() {
     });
   }, []);
 
-  // draw content when both image and fonts are loaded
+  // Draw into an offscreen canvas first so rapid input changes cannot let an
+  // older asynchronous QR render overwrite the latest badge.
   useEffect(() => {
     if (allLoaded && ctxRef.current && imgRef.current) {
-      const ctx = ctxRef.current;
-      ctx.drawImage(imgRef.current, 0, 0);
-      drawContent(ctx, props);
+      let cancelled = false;
+      const outputCtx = ctxRef.current;
+      const outputImage = imgRef.current;
+      const renderCanvas = document.createElement("canvas");
+      renderCanvas.width = 1024;
+      renderCanvas.height = 1024;
+      const renderCtx = renderCanvas.getContext("2d");
+
+      if (renderCtx) {
+        renderCtx.drawImage(outputImage, 0, 0);
+        void drawContent(renderCtx, props).then(() => {
+          if (!cancelled) {
+            outputCtx.clearRect(0, 0, 1024, 1024);
+            outputCtx.drawImage(renderCanvas, 0, 0);
+          }
+        });
+      }
+
+      return () => {
+        cancelled = true;
+      };
     }
   }, [allLoaded, props]);
 
