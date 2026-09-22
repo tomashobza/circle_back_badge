@@ -1,0 +1,46 @@
+.app {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+}
+
+.badge-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.badge-controls {
+  position: absolute;
+  z-index: 1;
+  top: 16px;
+  left: 16px;
+  display: grid;
+  width: min(220px, calc(100vw - 64px));
+  gap: 8px;
+  padding: 16px;
+  border: 1px solid rgb(0 0 0 / 8%);
+  border-radius: 16px;
+  background: rgb(255 255 255 / 88%);
+  box-shadow: 0 12px 40px rgb(0 0 0 / 12%);
+  backdrop-filter: blur(12px);
+}
+
+.badge-controls input {
+  min-width: 0;
+  padding: 8px 10px;
+  border: 1px solid #d5d5d5;
+  border-radius: 8px;
+  background: white;
+  color: #111;
+  font: inherit;
+}
+
+.badge-controls input:focus {
+  border-color: #1438c0;
+  outline: 2px solid rgb(20 56 192 / 18%);
+}
+
+.texture-canvas {
+  display: none;
+}

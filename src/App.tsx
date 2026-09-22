@@ -1,7 +1,9 @@
-// import Badge from "./Badge";
+import * as THREE from "three";
 import { useEffect, useRef, useState } from "react";
+import Badge from "./Badge";
 import badgeBg from "./assets/badge_bg.jpg";
 import QRCode from "qrcode";
+import "./App.css";
 
 interface BadgeProps {
   name: string;
@@ -172,42 +174,57 @@ function App() {
 
   const imgRef = useRef<HTMLImageElement>(null);
   const ctxRef = useRef<CanvasRenderingContext2D | null>(null);
+  const textureRef = useRef<THREE.CanvasTexture | null>(null);
+  const [badgeTexture, setBadgeTexture] = useState<THREE.CanvasTexture | null>(
+    null,
+  );
   const [allLoaded, setAllLoaded] = useState(false);
 
   useEffect(() => {
-    // setup canvas context
     const canvas = canvasRef.current;
-    if (canvas) {
-      canvas.width = 1024; // pixel buffer
-      canvas.height = 1024;
-      canvas.style.width = "500px"; // display size
-      const ctx = canvas.getContext("2d");
-      if (ctx) {
-        ctxRef.current = ctx;
-      }
-    }
+    if (!canvas) return;
 
-    console.log("canvas setup complete");
+    canvas.width = 1024;
+    canvas.height = 1024;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return;
+    ctxRef.current = ctx;
 
-    // load fronts
-    Promise.all([
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    texture.flipY = false;
+    texture.anisotropy = 16;
+    textureRef.current = texture;
+    setBadgeTexture(texture);
+
+    let cancelled = false;
+
+    const imagePromise = new Promise<void>((resolve, reject) => {
+      const img = new Image();
+      img.onload = () => {
+        imgRef.current = img;
+        resolve();
+      };
+      img.onerror = reject;
+      img.src = badgeBg;
+    });
+
+    void Promise.all([
       document.fonts.load('100 64px "Geist Mono"'),
       document.fonts.load('400 24px "Inter"'),
       document.fonts.load('400 16px "Inter"'),
       document.fonts.load('600 16px "Inter"'),
-      new Promise((resolve, reject) => {
-        const img = new Image();
-        img.onload = () => {
-          imgRef.current = img;
-          resolve(null);
-        };
-        img.onerror = reject;
-        img.src = badgeBg;
-      }),
+      imagePromise,
     ]).then(() => {
-      console.log("all assets loaded", imgRef.current, ctxRef.current);
-      setAllLoaded(true);
+      if (!cancelled) setAllLoaded(true);
     });
+
+    return () => {
+      cancelled = true;
+      ctxRef.current = null;
+      textureRef.current = null;
+      texture.dispose();
+    };
   }, []);
 
   // Draw into an offscreen canvas first so rapid input changes cannot let an
@@ -228,6 +245,7 @@ function App() {
           if (!cancelled) {
             outputCtx.clearRect(0, 0, 1024, 1024);
             outputCtx.drawImage(renderCanvas, 0, 0);
+            if (textureRef.current) textureRef.current.needsUpdate = true;
           }
         });
       }
@@ -238,36 +256,12 @@ function App() {
     }
   }, [allLoaded, props]);
 
-  // const img = new Image();
-  // img.onload = async () => {
-  //   imageLoaded.current = true;
-
-  //   const canvas = canvasRef.current;
-  //   if (canvas) {
-  //     canvas.width = 1024; // pixel buffer
-  //     canvas.height = 1024;
-  //     canvas.style.width = "500px"; // display size
-  //     // canvas.style.height = "200px";
-  //     // const desiredWidth = 1024;
-  //     // const desiredHeight = 1024;
-  //     // const scaleX = 200 / desiredWidth;
-  //     // const scaleY = 200 / desiredHeight;
-  //     const ctx = canvas.getContext("2d");
-  //     if (ctx) {
-  //       // ctx.scale(scaleX, scaleY);
-  //       ctx.drawImage(img, 0, 0);
-  //       await drawContent(ctx, defaultBadgeProps);
-
-  //       // ctx.fillRect(166, 474, 264, 9);
-  //     }
-  //   }
-  // };
-  // img.src = badgeBg; // just use the URL directly
-
   return (
-    <div>
-      {/* inputs to change the badge content */}
-      <form>
+    <main className="app">
+      <div className="badge-stage">
+        <Badge texture={badgeTexture} />
+      </div>
+      <form className="badge-controls" onSubmit={(event) => event.preventDefault()}>
         <input
           type="text"
           placeholder="Name"
@@ -314,13 +308,11 @@ function App() {
         />
       </form>
       <canvas
-        style={{ border: "1px solid #000" }}
+        className="texture-canvas"
         ref={canvasRef}
-        // width={200}
-        // height={200}
-        id="myCanvas"
-      ></canvas>
-    </div>
+        aria-hidden="true"
+      />
+    </main>
   );
 }
 

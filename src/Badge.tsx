@@ -31,11 +31,15 @@ extend({ MeshLineGeometry, MeshLineMaterial });
 useGLTF.preload("/circle_back_badge.glb");
 useTexture.preload("/band.jpg");
 
-export default function Badge() {
+interface BadgeProps {
+  texture: THREE.Texture | null;
+}
+
+export default function Badge({ texture }: BadgeProps) {
   // const { debug } = useControls({ debug: false });
   return (
     <Canvas
-      camera={{ position: [0, 0, 13], fov: 25 }}
+      camera={{ position: [0, 0, 10], fov: 22 }}
       style={{ touchAction: "none" }}
     >
       <ambientLight intensity={Math.PI} />
@@ -45,7 +49,7 @@ export default function Badge() {
         gravity={[0, -40, 0]}
         timeStep={1 / 60}
       >
-        <Band />
+        <Band badgeTexture={texture} />
       </Physics>
       <Environment background /*blur={0.75}*/>
         <color attach="background" args={["white"]} />
@@ -82,7 +86,13 @@ export default function Badge() {
   );
 }
 
-function Band({ maxSpeed = 50, minSpeed = 10 }) {
+interface BandProps {
+  badgeTexture: THREE.Texture | null;
+  maxSpeed?: number;
+  minSpeed?: number;
+}
+
+function Band({ badgeTexture, maxSpeed = 50, minSpeed = 10 }: BandProps) {
   const band = useRef<THREE.Mesh<MeshLineGeometryType>>(null), fixed = useRef<RapierRigidBody>(null), j1 = useRef<RigidBodyWithLerped>(null), j2 = useRef<RigidBodyWithLerped>(null), j3 = useRef<RapierRigidBody>(null), card = useRef<RapierRigidBody>(null) // prettier-ignore
   const vec = new THREE.Vector3(), ang = new THREE.Vector3(), rot = new THREE.Vector3(), dir = new THREE.Vector3() // prettier-ignore
   const segmentProps = {
@@ -209,7 +219,10 @@ function Band({ maxSpeed = 50, minSpeed = 10 }) {
           >
             <mesh geometry={(nodes.card as THREE.Mesh).geometry}>
               <meshPhysicalMaterial
-                map={(materials.base as THREE.MeshStandardMaterial).map}
+                map={
+                  badgeTexture ??
+                  (materials.base as THREE.MeshStandardMaterial).map
+                }
                 map-anisotropy={16}
                 clearcoat={1}
                 clearcoatRoughness={0.15}
